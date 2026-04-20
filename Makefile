@@ -8,6 +8,9 @@ BUILDROOT_COMMIT = 2026.02
 BUILDROOT_DIR = $(shell pwd)/buildroot
 BUILDROOT_CONFIG = sgrec_buildroot_defconfig
 
+LINUX_FIRMWARE_DIR = $(shell pwd)/linux-firmware
+LINUX_FIRMWARE_REPO = https://github.com/endlessm/linux-firmware.git
+
 GRUB_CONFIG = grub.cfg
 
 BUILD_DIR = $(shell pwd)/build
@@ -19,6 +22,9 @@ EFI_DIR = $(BUILD_DIR)/EFI
 ROOTFS_DIR = $(BUILD_DIR)/rootfs
 
 QEMU = qemu-system-riscv64
+
+SUPPORT_AMD_GPU ?= y
+SUPPORT_NVIDIA_GPU ?= y
 
 # for native build, let it empty
 CROSS_COMPILE =
@@ -72,7 +78,7 @@ kernel-source: FORCE
 kernel-target: kernel-source
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) Image.gz
 
-rootfs: FORCE buildroot-target kernel-source
+rootfs: # buildroot-target kernel-source
 	mkdir -p $(ISO_DIR)/boot
 	rm -rf $(ROOTFS_DIR) && mkdir -p $(ROOTFS_DIR)
 	cd $(ROOTFS_DIR) && fakeroot cpio -imd < $(BUILDROOT_DIR)/output/images/rootfs.cpio
@@ -80,11 +86,23 @@ rootfs: FORCE buildroot-target kernel-source
 	rm -rf $(ROOTFS_DIR)/etc/profile.d/80-systemd-osc-context.sh
 	rm -rf $(ROOTFS_DIR)/usr/lib/tmpfiles.d/20-systemd-osc-context.conf
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) INSTALL_MOD_PATH=$(ROOTFS_DIR)/usr INSTALL_MOD_STRIP=1 modules_install
+ifeq ($(strip $(SUPPORT_AMD_GPU)), y)
+	cp -r $(LINUX_FIRMWARE_DIR)/amdgpu $(ROOTFS_DIR)/usr/lib
+endif
+ifeq ($(strip $(SUPPORT_NVIDIA_GPU)), y)
+	cp -r $(LINUX_FIRMWARE_DIR)/nvidia $(ROOTFS_DIR)/usr/lib
+endif
 	cd $(ROOTFS_DIR) && find . | cpio -H newc -o -R 0:0 | gzip > $(ISO_DIR)/boot/rootfs.cpio.gz
 
 kernel-image: kernel-target
 	mkdir -p $(ISO_DIR)/boot
 	cp $(KERNEL_DIR)/arch/riscv/boot/Image.gz $(ISO_DIR)/boot/Image.gz
+
+linux-firmware-source: FORCE
+	if [ ! -d $(LINUX_FIRMWARE_DIR) ]; then \
+		git clone $(LINUX_FIRMWARE_REPO) $(LINUX_FIRMWARE_DIR); \
+	fi
+	cd $(LINUX_FIRMWARE_DIR) && git pull
 
 $(ISO_DIR)/boot/grub/grub.cfg: $(GRUB_CONFIG)
 	mkdir -p $(dir $@)
