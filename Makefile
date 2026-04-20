@@ -138,8 +138,8 @@ $(ISO_FILE):  FORCE efi-image rootfs kernel-image grub-config
 run: FORCE
 	$(QEMU) \
 		-machine virt,acpi=off -m 4G -smp 4 -nographic   \
-		-drive if=pflash,format=raw,unit=0,file=RISCV_VIRT_CODE.fd,readonly=on \
-		-drive if=pflash,format=raw,unit=1,file=RISCV_VIRT_VARS.fd \
+		-drive if=pflash,format=raw,unit=0,file=binary/RISCV_VIRT_CODE.fd,readonly=on \
+		-drive if=pflash,format=raw,unit=1,file=binary/RISCV_VIRT_VARS.fd \
 		-drive if=virtio,media=cdrom,readonly=on,file=$(ISO_FILE)
 
 FORCE:
