@@ -1,17 +1,17 @@
 KERNEL_REPO = https://github.com/sophgo/linux-riscv.git
 KERNEL_COMMIT = 641c5b68a4595cb6ab45cbfa6b8b3d7a165c3f76
 KERNEL_DIR = $(shell pwd)/linux-riscv
-KERNEL_CONFIG = sgrec_kernel_defconfig
+KERNEL_CONFIG = config/kernel/sgrec_kernel_defconfig
 
 BUILDROOT_REPO = https://github.com/buildroot/buildroot.git
 BUILDROOT_COMMIT = 2026.02
 BUILDROOT_DIR = $(shell pwd)/buildroot
-BUILDROOT_CONFIG = sgrec_buildroot_defconfig
+BUILDROOT_CONFIG = config/buildroot/sgrec_buildroot_defconfig
 
 LINUX_FIRMWARE_DIR = $(shell pwd)/linux-firmware
 LINUX_FIRMWARE_REPO = https://github.com/endlessm/linux-firmware.git
 
-GRUB_CONFIG = grub.cfg
+GRUB_CONFIG = config/grub/grub.cfg
 
 BUILD_DIR = $(shell pwd)/build
 
