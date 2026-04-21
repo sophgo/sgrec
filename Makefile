@@ -1,7 +1,11 @@
-KERNEL_REPO = https://github.com/sophgo/linux-riscv.git
-KERNEL_COMMIT = 641c5b68a4595cb6ab45cbfa6b8b3d7a165c3f76
-KERNEL_DIR = $(shell pwd)/linux-riscv
-KERNEL_CONFIG = config/kernel/sgrec_kernel_defconfig
+VARIANT ?=
+
+ifeq ($(strip $(VARIANT)), )
+$(error Variant need be set)
+endif
+
+
+include variant/$(VARIANT).mak
 
 BUILDROOT_REPO = https://github.com/buildroot/buildroot.git
 BUILDROOT_COMMIT = 2026.02
@@ -13,9 +17,9 @@ LINUX_FIRMWARE_REPO = https://github.com/endlessm/linux-firmware.git
 
 GRUB_CONFIG = config/grub/grub.cfg
 
-BUILD_DIR = $(shell pwd)/build
+BUILD_DIR = $(shell pwd)/build/$(VARIANT)
 
-ISO_FILE = $(BUILD_DIR)/sophgo-recovery.iso
+ISO_FILE = $(BUILD_DIR)/sophgo-recovery-$(VARIANT).iso
 ISO_DIR = $(BUILD_DIR)/iso
 EFI_IMG = $(BUILD_DIR)/efi.img
 EFI_DIR = $(BUILD_DIR)/EFI
@@ -63,28 +67,28 @@ buildroot-target: buildroot-source
 
 kernel-clean: FORCE
 	if [ -d $(KERNEL_DIR) ]; then \
-		make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) distclean
+		make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) distclean; \
 	fi
 
 kernel-source: FORCE
 	if [ ! -d $(KERNEL_DIR) ]; then \
-		git clone $(KERNEL_REPO) && \
-		cd $(KERNEL_DIR) && \
-		git checkout $(KERNEL_COMMIT); \
+		git clone $(KERNEL_REPO); \
 	fi
+	cd $(KERNEL_DIR) && git checkout $(KERNEL_COMMIT);
 	cp $(KERNEL_CONFIG) $(KERNEL_DIR)/.config
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) olddefconfig
 
 kernel-target: kernel-source
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) Image.gz
 
-rootfs: # buildroot-target kernel-source
+rootfs: buildroot-target kernel-target
 	mkdir -p $(ISO_DIR)/boot
 	rm -rf $(ROOTFS_DIR) && mkdir -p $(ROOTFS_DIR)
 	cd $(ROOTFS_DIR) && fakeroot cpio -imd < $(BUILDROOT_DIR)/output/images/rootfs.cpio
 	echo 'Remove OSC 8003 for compatible consideration'
 	rm -rf $(ROOTFS_DIR)/etc/profile.d/80-systemd-osc-context.sh
 	rm -rf $(ROOTFS_DIR)/usr/lib/tmpfiles.d/20-systemd-osc-context.conf
+	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) modules
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) INSTALL_MOD_PATH=$(ROOTFS_DIR)/usr INSTALL_MOD_STRIP=1 modules_install
 ifeq ($(strip $(SUPPORT_AMD_GPU)), y)
 	cp -r $(LINUX_FIRMWARE_DIR)/amdgpu $(ROOTFS_DIR)/usr/lib
