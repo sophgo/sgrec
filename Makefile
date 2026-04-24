@@ -114,7 +114,7 @@ $(ISO_DIR)/boot/grub/grub.cfg: $(GRUB_CONFIG)
 
 $(EFI_IMG): FORCE
 	rm -rf $(EFI_IMG) $(EFI_DIR)
-	mkdir -p $(EFI_DIR)/BOOT
+	mkdir -p $(EFI_DIR)/BOOT $(ISO_DIR)
 	grub2-mkimage	-O riscv64-efi \
 			-o $(EFI_DIR)/BOOT/BOOTRISCV64.EFI \
 			-p /boot/grub \
@@ -123,11 +123,14 @@ $(EFI_IMG): FORCE
 			search boot true reboot configfile gzio
 	mkfs.vfat -C -n SGREC $(EFI_IMG) 4096
 	mcopy -i $(EFI_IMG) -s $(EFI_DIR) ::
+	cp $(EFI_IMG) $(ISO_DIR)
 
 efi-image: $(EFI_IMG)
 grub-config: $(ISO_DIR)/boot/grub/grub.cfg
 
-$(ISO_FILE):  FORCE efi-image rootfs kernel-image grub-config
+
+# -append_partition 2 0xef $(EFI_IMG)
+$(ISO_FILE):  efi-image rootfs kernel-image grub-config FORCE 
 	xorriso		-as mkisofs \
 			-r \
 			-V "SOPHGO-RECOVERY" \
@@ -136,7 +139,7 @@ $(ISO_FILE):  FORCE efi-image rootfs kernel-image grub-config
 			-joliet-long \
 			-cache-inodes \
 			-no-emul-boot \
-			-append_partition 2 0xef $(EFI_IMG) \
+			-e efi.img \
 			-partition_cyl_align all $(ISO_DIR)
 
 run: FORCE
