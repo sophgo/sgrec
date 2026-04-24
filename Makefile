@@ -143,10 +143,13 @@ $(ISO_FILE):  efi-image rootfs kernel-image grub-config FORCE
 			-partition_cyl_align all $(ISO_DIR)
 
 run: FORCE
+	if [ ! -f $(BUILD_DIR)/RISCV_VIRT_VARS.fd ]; then \
+		cp binary/RISCV_VIRT_VARS.fd $(BUILD_DIR)/RISCV_VIRT_VARS.fd; \
+	fi
 	$(QEMU) \
 		-machine virt,acpi=off -m 4G -smp 4 -nographic   \
 		-drive if=pflash,format=raw,unit=0,file=binary/RISCV_VIRT_CODE.fd,readonly=on \
-		-drive if=pflash,format=raw,unit=1,file=binary/RISCV_VIRT_VARS.fd \
+		-drive if=pflash,format=raw,unit=1,file=$(BUILD_DIR)/RISCV_VIRT_VARS.fd \
 		-drive if=virtio,media=cdrom,readonly=on,file=$(ISO_FILE)
 
 FORCE:
