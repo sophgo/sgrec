@@ -1,11 +1,6 @@
 VARIANT ?=
 
-ifeq ($(strip $(VARIANT)), )
-$(error Variant need be set)
-endif
-
-
-include variant/$(VARIANT).mak
+sinclude variant/$(VARIANT).mak
 
 BUILDROOT_REPO = https://github.com/buildroot/buildroot.git
 BUILDROOT_COMMIT = 2026.02
@@ -35,8 +30,19 @@ CROSS_COMPILE =
 
 ARCH = riscv
 
-all: $(ISO_FILE)
+all: check_variant $(ISO_FILE)
 	echo 'Done'
+
+check_variant: FORCE
+	@if [ ! -f variant/$(VARIANT).mak ]; then \
+		echo; \
+		echo 'Invalid variant: $(VARIANT)'; \
+		echo; \
+		echo 'Valid variants are:'; \
+		ls variant/ | xargs basename -s .mak; \
+		echo; \
+		exit 1; \
+	fi
 
 tools: FORCE
 	sudo dnf install grub2-efi-riscv64-modules mtools dosfstools
