@@ -90,11 +90,13 @@ rootfs: buildroot-target kernel-target
 	rm -rf $(ROOTFS_DIR)/usr/lib/tmpfiles.d/20-systemd-osc-context.conf
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) modules
 	make -C $(KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -j$$(nproc) INSTALL_MOD_PATH=$(ROOTFS_DIR)/usr INSTALL_MOD_STRIP=1 modules_install
+	mkdir -p $(ROOTFS_DIR)/usr/lib/firmware
 ifeq ($(strip $(SUPPORT_AMD_GPU)), y)
-	cp -r $(LINUX_FIRMWARE_DIR)/amdgpu $(ROOTFS_DIR)/usr/lib
+	cp -r $(LINUX_FIRMWARE_DIR)/amdgpu $(ROOTFS_DIR)/usr/lib/firmware
+	cp -r $(LINUX_FIRMWARE_DIR)/radeon $(ROOTFS_DIR)/usr/lib/firmware
 endif
 ifeq ($(strip $(SUPPORT_NVIDIA_GPU)), y)
-	cp -r $(LINUX_FIRMWARE_DIR)/nvidia $(ROOTFS_DIR)/usr/lib
+	cp -r $(LINUX_FIRMWARE_DIR)/nvidia $(ROOTFS_DIR)/usr/lib/firmware
 endif
 	cd $(ROOTFS_DIR) && find . | cpio -H newc -o -R 0:0 | gzip > $(ISO_DIR)/boot/rootfs.cpio.gz
 
